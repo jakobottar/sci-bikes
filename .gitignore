@@ -1,4 +1,5 @@
 data
+dvc_*
 .vscode
 
 # model files

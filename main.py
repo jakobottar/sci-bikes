@@ -2,8 +2,9 @@
 
 import torch
 from torch import nn
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchvision import datasets, transforms, models
-# import torchvision.models as models
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -14,11 +15,14 @@ transform = transforms.Compose([transforms.Resize(255),
                                 transforms.CenterCrop(224),
                                 transforms.ToTensor()])
 
-train_data = datasets.ImageFolder('dvc_train', transform=transform)
-test_data = datasets.ImageFolder('dvc_test', transform=transform)
+numFiles = 2000
+indices = np.arange(0, numFiles)
+np.random.shuffle(indices)
 
-train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=True)
-test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=32, shuffle=True)
+data = datasets.ImageFolder('dvc', transform=transform)
+
+train_dataloader = DataLoader(data, batch_size=32, sampler=SubsetRandomSampler(indices[:1500]))
+test_dataloader = DataLoader(data, batch_size=32, sampler=SubsetRandomSampler(indices[-500:]))
 
 # images, labels = next(iter(dataloader))
 # im_ = images[0].squeeze()[0]
@@ -26,7 +30,6 @@ test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=32, shuffle=
 # plt.show()
 
 model = models.vgg16(pretrained=True).to(device)
-# print(model)
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
@@ -45,7 +48,9 @@ def train(dataloader, model, loss_fn, optimizer):
         loss.backward()
         optimizer.step()
 
-        if batch % 100 == 0:
+        # print(batch)
+
+        if batch % 8 == 0:
             loss, current = loss.item(), batch * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
@@ -71,4 +76,4 @@ for t in range(epochs):
 print("Done!")
 
 torch.save(model.state_dict(), "catsanddogs.pth")
-print("Saved PyTorch Model State to model.pth")
+print("Saved PyTorch Model State to catsanddogs.pth")

@@ -1,5 +1,7 @@
 data
 dvc
+dvc_test
+dvc_train
 .vscode
 
 # model files

@@ -1,6 +1,7 @@
 # % matplotlib inline
 
 import torch
+import os
 from torch import nn
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchvision import datasets, transforms, models
@@ -9,7 +10,13 @@ import torchdata as td
 import matplotlib.pyplot as plt
 import numpy as np
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+GPU_NUM = 0
+
+if not torch.cuda.is_available():
+    print("Looks like there's no CUDA devices available, sorry!")
+    exit
+
+device = "cuda:" + str(GPU_NUM)
 print("Using {} device".format(device))
 
 transform = transforms.Compose([transforms.Resize(255),

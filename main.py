@@ -20,7 +20,7 @@ device = "cuda:" + str(GPU_NUM)
 print("Using {} device".format(device))
 
 transform = {
-    'train': transforms.Compose([transforms.RandomResizedCrop(224),
+    'train': transforms.Compose([transforms.Resize(224),
                                 transforms.ToTensor()]),
     'test': transforms.Compose([transforms.Resize(255),
                                 transforms.CenterCrop(224),
@@ -30,8 +30,8 @@ transform = {
 train_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_train', transform=transform["train"])
 test_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_test', transform=transform["test"])
 
-train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-test_dataloader = DataLoader(test_dataset, batch_size=4, shuffle=True)
+train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True)
 
 model = models.vgg16(pretrained=True).to(device)
 loss_fn = nn.CrossEntropyLoss()
@@ -53,7 +53,7 @@ def train(dataloader, model, loss_fn, optimizer):
 
         # print(batch)
 
-        if batch % 2 == 0:
+        if batch % 4 == 0:
             loss, current = loss.item(), batch * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 

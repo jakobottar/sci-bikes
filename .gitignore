@@ -1,7 +1,6 @@
-data
+bikes_train
+bikes_test
 dvc
-dvc_test
-dvc_train
 .vscode
 
 # model files

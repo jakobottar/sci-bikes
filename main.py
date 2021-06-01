@@ -1,14 +1,14 @@
-# % matplotlib inline
-
 import torch
-import os
 from torch import nn
-from torch.utils.data import DataLoader, SubsetRandomSampler
-from torchvision import datasets, transforms, models
-import torchdata as td
+from torchvision.io import read_image
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+import torchvision.models as models
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+import helper
 
 GPU_NUM = 0
 
@@ -19,28 +19,21 @@ if not torch.cuda.is_available():
 device = "cuda:" + str(GPU_NUM)
 print("Using {} device".format(device))
 
-transform = transforms.Compose([transforms.Resize(255),
+transform = {
+    'train': transforms.Compose([transforms.RandomResizedCrop(224),
+                                transforms.ToTensor()]),
+    'test': transforms.Compose([transforms.Resize(255),
                                 transforms.CenterCrop(224),
                                 transforms.ToTensor()])
+    }
+        
+train_dataset = helper.BikeDataset('bikes.csv', img_dir='bikes_train', transform=transform["train"])
+test_dataset = helper.BikeDataset('bikes.csv', img_dir='bikes_test', transform=transform["test"])
 
-data = td.datasets.WrapDataset(datasets.ImageFolder('dvc', transform=transform))
-
-total_count = len(data)
-train_count = int(0.8 * total_count)
-test_count = total_count - train_count
-
-train_data, test_data = torch.utils.data.random_split(data, (train_count, test_count)) # this can be extended to include a validation set too
-
-train_dataloader = DataLoader(train_data, batch_size=32, shuffle=True)
-test_dataloader = DataLoader(test_data, batch_size=32, shuffle=True)
-
-# images, labels = next(iter(dataloader))
-# im_ = images[0].squeeze()[0]
-# plt.imshow(im_, cmap='gray')
-# plt.show()
+train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=4, shuffle=True)
 
 model = models.vgg16(pretrained=True).to(device)
-
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
@@ -60,7 +53,7 @@ def train(dataloader, model, loss_fn, optimizer):
 
         # print(batch)
 
-        if batch % 100 == 0:
+        if batch % 2 == 0:
             loss, current = loss.item(), batch * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
@@ -85,5 +78,5 @@ for t in range(epochs):
     test(test_dataloader, model)
 print("Done!")
 
-torch.save(model.state_dict(), "catsanddogs.pth")
-print("Saved PyTorch Model State to catsanddogs.pth")
+torch.save(model.state_dict(), "bikes.pth")
+print("Saved PyTorch Model State to bikes.pth")

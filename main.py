@@ -27,8 +27,8 @@ transform = {
                                 transforms.ToTensor()])
     }
         
-train_dataset = helper.BikeDataset('bikes.csv', img_dir='bikes_train', transform=transform["train"])
-test_dataset = helper.BikeDataset('bikes.csv', img_dir='bikes_test', transform=transform["test"])
+train_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_train', transform=transform["train"])
+test_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_test', transform=transform["test"])
 
 train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size=4, shuffle=True)

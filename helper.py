@@ -17,6 +17,8 @@ from PIL import Image
 
 #     return dataSets
 
+# TODO: I should be able to make this grab files listed in a file vs everything in the folder to solve the test/train split problem
+
 class BikeDataset(Dataset):
     def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
         self.img_labels = pd.read_csv(img_dir +  "/" + annotations_file)

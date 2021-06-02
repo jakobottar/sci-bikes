@@ -30,7 +30,7 @@ def RandomCrop(image, size):
 
 
 train_writer = csv.writer(open('data/bikes_train/bikes.csv', 'w', newline=''))
-test_writer = csv.writer(open('data/bikes_test/bikes.csv', 'w', newline=''))
+# test_writer = csv.writer(open('data/bikes_test/bikes.csv', 'w', newline=''))
 
 for cl in range(len(class_dirs)):
     dir = class_dirs[cl]
@@ -46,7 +46,7 @@ for cl in range(len(class_dirs)):
             train_writer.writerow([filename, cl])
             img.save("data/bikes_train/" + filename)
 
-        test_writer.writerow([img_name, cl]) 
-        img_raw.save("data/bikes_test/" + img_name)
+        # test_writer.writerow([img_name, cl]) 
+        # img_raw.save("data/bikes_test/" + img_name)
 
 

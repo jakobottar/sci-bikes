@@ -21,6 +21,7 @@ print("Using {} device".format(device))
 
 transform = {
     'train': transforms.Compose([transforms.Resize(224),
+                                transforms.ColorJitter(),
                                 transforms.ToTensor()]),
     'test': transforms.Compose([transforms.Resize(255),
                                 transforms.CenterCrop(224),

@@ -21,11 +21,13 @@ print("Using {} device".format(device))
 
 transform = {
     'train': transforms.Compose([transforms.Resize(224),
-                                transforms.ColorJitter(),
-                                transforms.ToTensor()]),
+                                transforms.ColorJitter(brightness=0.5),
+                                transforms.ToTensor(), 
+                                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
     'test': transforms.Compose([transforms.Resize(255),
                                 transforms.CenterCrop(224),
-                                transforms.ToTensor()])
+                                transforms.ToTensor(),
+                                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     }
         
 train_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_train', transform=transform["train"])
@@ -34,7 +36,10 @@ test_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_test', transf
 train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True)
 
-model = models.vgg16(pretrained=True).to(device)
+# model = models.vgg16(pretrained=False)
+model = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=True)
+
+model = model.to(device)
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
@@ -54,7 +59,8 @@ def train(dataloader, model, loss_fn, optimizer):
 
         # print(batch)
 
-        if batch % 4 == 0:
+        if batch % 16 == 0:
+        # if batch % 100 == 0:
             loss, current = loss.item(), batch * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
@@ -72,7 +78,7 @@ def test(dataloader, model):
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
-epochs = 5
+epochs = 8
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
     train(train_dataloader, model, loss_fn, optimizer)

@@ -32,12 +32,15 @@ def RandomCrop(image, size):
 train_writer = csv.writer(open('data/bikes_train/bikes.csv', 'w', newline=''))
 # test_writer = csv.writer(open('data/bikes_test/bikes.csv', 'w', newline=''))
 
+train_writer.writerow(["filename", "class"])
+# test_writer.writerow(["filename", "class"])
+
 for cl in range(len(class_dirs)):
     dir = class_dirs[cl]
     files = os.listdir(dir)
     for img_name in files:
         img_raw = Image.open(dir + "/" + img_name)
-        img_resize = img_raw.resize((350, 350))
+        img_resize = img_raw.resize((400, 400))
         for i in range(samples):
             img = RandomHorizontalFlip(img_resize)
             img = RandomVerticalFlip(img)

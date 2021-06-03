@@ -2,6 +2,7 @@ bikes_train
 # bikes_test
 dvc
 .vscode
+__pycache__
 
 # model files
 *.pth

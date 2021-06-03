@@ -10,7 +10,18 @@ import numpy as np
 
 import helper
 
-GPU_NUM = 0
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--gpu', type=int, default=0, help="GPU device number")
+parser.add_argument('--epochs', type=int, default=5, help="number of training epochs")
+parser.add_argument('--hide-loss', dest='loss', action='store_false')
+parser.set_defaults(loss=True)
+
+FLAGS, unparsed = parser.parse_known_args()
+
+GPU_NUM = FLAGS.gpu
 
 if not torch.cuda.is_available():
     print("Looks like there's no CUDA devices available, sorry!")
@@ -33,11 +44,11 @@ transform = {
 train_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_train', transform=transform["train"])
 test_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_test', transform=transform["test"])
 
-train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True)
+train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=8, shuffle=True)
 
 # model = models.vgg16(pretrained=False)
-model = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=True)
+model = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=False)
 
 model = model.to(device)
 loss_fn = nn.CrossEntropyLoss()
@@ -57,12 +68,10 @@ def train(dataloader, model, loss_fn, optimizer):
         loss.backward()
         optimizer.step()
 
-        # print(batch)
-
-        if batch % 16 == 0:
-        # if batch % 100 == 0:
-            loss, current = loss.item(), batch * len(X)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+        if FLAGS.loss:
+            if batch % 32 == 0:
+                loss, current = loss.item(), batch * len(X)
+                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
 def test(dataloader, model):
     size = len(dataloader.dataset)
@@ -76,11 +85,11 @@ def test(dataloader, model):
             correct += (pred.argmax(1) == y).type(torch.float).sum().item()
     test_loss /= size
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(f"Test Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
-epochs = 8
+epochs = FLAGS.epochs
 for t in range(epochs):
-    print(f"Epoch {t+1}\n-------------------------------")
+    print(f"Epoch {t+1}/{epochs}\n-------------------------------")
     train(train_dataloader, model, loss_fn, optimizer)
     test(test_dataloader, model)
 print("Done!")

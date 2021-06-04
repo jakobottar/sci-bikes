@@ -31,7 +31,8 @@ device = "cuda:" + str(GPU_NUM)
 print("Using {} device".format(device))
 
 transform = {
-    'train': transforms.Compose([transforms.Resize(224),
+    'train': transforms.Compose([transforms.Resize(255),
+                                transforms.CenterCrop(224),
                                 transforms.ColorJitter(brightness=0.5),
                                 transforms.ToTensor(), 
                                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
@@ -41,11 +42,11 @@ transform = {
                                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     }
         
-train_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_train', transform=transform["train"])
-test_dataset = helper.BikeDataset('bikes.csv', img_dir='data/bikes_test', transform=transform["test"])
+train_dataset = helper.BikeDataset('dvc_train.csv', img_dir='dvc/train', transform=transform["train"])
+test_dataset = helper.BikeDataset('dvc_test.csv', img_dir='dvc/test', transform=transform["test"])
 
-train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-test_dataloader = DataLoader(test_dataset, batch_size=8, shuffle=True)
+train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=True)
 
 # model = models.vgg16(pretrained=False)
 model = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=False)
@@ -69,7 +70,7 @@ def train(dataloader, model, loss_fn, optimizer):
         optimizer.step()
 
         if FLAGS.loss:
-            if batch % 32 == 0:
+            if batch % 128 == 0:
                 loss, current = loss.item(), batch * len(X)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
@@ -94,5 +95,5 @@ for t in range(epochs):
     test(test_dataloader, model)
 print("Done!")
 
-torch.save(model.state_dict(), "bikes.pth")
-print("Saved PyTorch Model State to bikes.pth")
+torch.save(model.state_dict(), "catsanddogs.pth")
+print("Saved PyTorch Model State to catsanddogs.pth")

@@ -1,6 +1,6 @@
 bikes_train
 # bikes_test
-dvc
+dvc*
 .vscode
 __pycache__
 

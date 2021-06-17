@@ -4,6 +4,9 @@ import pandas as pd
 from torch.utils.data import Dataset
 from PIL import Image
 
+import progressbar
+import logging
+
 # def SplitLoad(rootFolder, trainSplit, transforms):
 #     dataSets = {}
 

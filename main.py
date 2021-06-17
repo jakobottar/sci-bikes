@@ -9,15 +9,95 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import helper
+import trainer
+import logging
+import progressbar
 
 import argparse
+
+class MyVGG(nn.Module):
+    def __init__(self):
+        super(MyVGG, self).__init__()
+        self.flatten = nn.Flatten()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False),
+            nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False),
+            nn.Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False),
+            nn.Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False),
+            nn.Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        )
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=25088, out_features=4096, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=4096, out_features=4096, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=4096, out_features=1000, bias=True)
+        )
+
+        self._initialize_weights()
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = self.flatten(x)
+        x = self.classifier(x)
+        return x
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
+
+
+progressbar.streams.wrap_stderr()
+logging.basicConfig(filename="ref-vgg.log",
+                    format='%(asctime)s %(message)s',
+                    filemode='w')
+
+logger=logging.getLogger()
+logger.setLevel(logging.INFO)
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--gpu', type=int, default=0, help="GPU device number")
-parser.add_argument('--epochs', type=int, default=5, help="number of training epochs")
-parser.add_argument('--hide-loss', dest='loss', action='store_false')
-parser.set_defaults(loss=True)
+parser.add_argument('--epochs', type=int, default=5, help="Number of training/testing epochs")
 
 FLAGS, unparsed = parser.parse_known_args()
 
@@ -28,7 +108,7 @@ if not torch.cuda.is_available():
     exit
 
 device = "cuda:" + str(GPU_NUM)
-print("Using {} device".format(device))
+logger.info(f"Using {device} device")
 
 transform = {
     'train': transforms.Compose([transforms.Resize(255),
@@ -48,52 +128,23 @@ test_dataset = helper.BikeDataset('dvc_test.csv', img_dir='dvc/test', transform=
 train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=True)
 
-# model = models.vgg16(pretrained=False)
-model = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=False)
+model = models.vgg16(pretrained=False)
+# model = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=True)
+# model = MyVGG()
+
+logger.info("finished loading data and model")
 
 model = model.to(device)
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
-def train(dataloader, model, loss_fn, optimizer):
-    size = len(dataloader.dataset)
-    for batch, (X, y) in enumerate(dataloader):
-        X, y = X.to(device), y.to(device)
+trainer = trainer.Trainer(model, loss_fn, optimizer, device)
 
-        # Compute prediction error
-        pred = model(X)
-        loss = loss_fn(pred, y)
+trainer.SetEpochs(FLAGS.epochs)
+trainer.Run(train_dataloader, test_dataloader, verbose=False)
 
-        # Backpropagation
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+# trainer.RunTrainer(train_dataloader, FLAGS.epochs)
+# trainer.RunTester(test_dataloader)
 
-        if FLAGS.loss:
-            if batch % 128 == 0:
-                loss, current = loss.item(), batch * len(X)
-                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-
-def test(dataloader, model):
-    size = len(dataloader.dataset)
-    model.eval()
-    test_loss, correct = 0, 0
-    with torch.no_grad():
-        for X, y in dataloader:
-            X, y = X.to(device), y.to(device)
-            pred = model(X)
-            test_loss += loss_fn(pred, y).item()
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-    test_loss /= size
-    correct /= size
-    print(f"Test Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
-
-epochs = FLAGS.epochs
-for t in range(epochs):
-    print(f"Epoch {t+1}/{epochs}\n-------------------------------")
-    train(train_dataloader, model, loss_fn, optimizer)
-    test(test_dataloader, model)
-print("Done!")
-
-torch.save(model.state_dict(), "catsanddogs.pth")
-print("Saved PyTorch Model State to catsanddogs.pth")
+# torch.save(model.state_dict(), "catsanddogs.pth")
+# print("Saved PyTorch Model State to catsanddogs.pth")

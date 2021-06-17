@@ -1,0 +1,4 @@
+2021-06-17 12:34:33,685 Using cuda:2 device
+2021-06-17 12:34:35,401 finished loading data and model
+2021-06-17 12:34:36,959 training, workout 1 of 4
+2021-06-17 12:34:38,118   loss: 6.927342  [    0/20000]
